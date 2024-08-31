@@ -46,45 +46,45 @@ threshold_line = ax.axhline(y=THRESHOLD, color='r', linestyle='--')
 # Record the start time
 start_time = time.time()
 
-
-
-def init():
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 100)
-    return ln,
-
 def update(frame):
     global max_volume, ax, ln
     if volume_data:
         xdata.append(volume_data[-1][0] - start_time)
         ydata.append(volume_data[-1][1])
         ln.set_data(xdata, ydata)
-        ax.set_xlim(xdata[0], xdata[-1])
-        ax.set_ylim(0, max_volume)
+        if xdata[0] != xdata[-1]:
+            ax.set_xlim(xdata[0], xdata[-1])
+        if 0 != max_volume:
+            ax.set_ylim(0, max_volume)
     return ln,
 
-ani = FuncAnimation(fig, update, blit=False, interval=100)
-
+ani = FuncAnimation(fig, update, blit=False, interval=100, cache_frame_data=False)
+plt.ion()
 
 snapshot_size = 60 # seconds
 snapshot_start_time = time.time()
 with stream:
+    print("Recording started")
     while True:
         try:
-            sd.sleep(100)
+            sd.sleep(200)
             plt.show()
+            plt.pause(0.001)
+            print((time.time() - snapshot_start_time))
             if (time.time() - snapshot_start_time) > snapshot_size:
                 if store_snapShot:
+                    print("Storing snapshot")
                     store_audio(audioQueue, sample_rate)
                     store_snapShot = False
                 else:
+                    print("clearing snapshot")
                     clear_queue(audioQueue)
                 snapshot_start_time = time.time()
             save_volume_data(volume_data)
             volume_data.clear()
+
         except KeyboardInterrupt:
             print("Interrupted by user")
             break
 
-if store_snapShot:
-    store_audio(audioQueue, sample_rate)
+
