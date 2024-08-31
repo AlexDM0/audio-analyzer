@@ -6,9 +6,16 @@ import queue
 import time
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from constants.Constants import THRESHOLD
+from constants.Constants import THRESHOLD, SNAPSHOT_DURATION
 from util.FileUtil import save_volume_data, store_audio
 from util.QueueUtil import audioQueue, clear_queue
+from pathlib import Path
+import os
+
+baseDir = os.path.dirname(__file__)
+
+os.makedirs(os.path.join(baseDir,'data'), exist_ok=True)
+os.makedirs(os.path.join(baseDir,'snapshots'), exist_ok=True)
 
 # Initialize the list to store timestamp and volume_norm
 volume_data = []
@@ -61,17 +68,24 @@ def update(frame):
 ani = FuncAnimation(fig, update, blit=False, interval=100, cache_frame_data=False)
 plt.ion()
 
-snapshot_size = 60 # seconds
 snapshot_start_time = time.time()
+RUNNING = True
+
+def on_close(event):
+    global RUNNING
+    RUNNING = False
+
+fig.canvas.mpl_connect('close_event', on_close)
+
 with stream:
     print("Recording started")
-    while True:
+    while RUNNING:
         try:
-            sd.sleep(200)
+            sd.sleep(100)
             plt.show()
             plt.pause(0.001)
-            print((time.time() - snapshot_start_time))
-            if (time.time() - snapshot_start_time) > snapshot_size:
+            print("Recording..." + str(time.time() - snapshot_start_time))
+            if (time.time() - snapshot_start_time) > SNAPSHOT_DURATION:
                 if store_snapShot:
                     print("Storing snapshot")
                     store_audio(audioQueue, sample_rate)
@@ -87,4 +101,6 @@ with stream:
             print("Interrupted by user")
             break
 
-
+if store_snapShot:
+    print("Storing snapshot")
+    store_audio(audioQueue, sample_rate)
